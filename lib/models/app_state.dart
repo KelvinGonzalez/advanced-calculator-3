@@ -2,12 +2,25 @@ import 'dart:math';
 
 import 'package:advanced_calculator_3/models/constants.dart';
 import 'package:advanced_calculator_3/models/custom_class.dart';
+import 'package:calculus/calculus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 import 'custom_function.dart';
 import 'custom_instance.dart';
+
+class DefaultFunction {
+  final String name;
+  final dynamic value;
+  final String description;
+  final List<String> parameters;
+
+  bool get isFunction => value is Function;
+
+  const DefaultFunction(
+      this.name, this.value, this.description, this.parameters);
+}
 
 class AppState {
   final Map<String, dynamic> myVariables;
@@ -28,24 +41,80 @@ class AppState {
       required this.floatInt,
       required this.logs});
 
-  Map<String, dynamic> get defaultFunctions => {
-        "sqrt": sqrt,
-        "pow": pow,
-        "mod": (x, b) => x % b,
-        "floor": (double x) => x.floor(),
-        "ceil": (double x) => x.ceil(),
-        "round": (double x) => x.round(),
-        "ln": log,
-        "log": (x) => log(x) / log(10),
-        "cos": (x) => cos(radDeg ? x : x * toRad),
-        "sin": (x) => sin(radDeg ? x : x * toRad),
-        "tan": (x) => tan(radDeg ? x : x * toRad),
-        "acos": (x) => acos(x) * (radDeg ? 1 : toDeg),
-        "asin": (x) => asin(x) * (radDeg ? 1 : toDeg),
-        "atan": (x) => atan(x) * (radDeg ? 1 : toDeg),
-        "pi": pi,
-        "e": e,
-      };
+  Map<String, dynamic> get contextWithoutCalculus => Map.from(context)
+    ..remove("slope")
+    ..remove("area");
+
+  Map<String, dynamic> get context => {}
+    ..addAll(
+        {for (var function in defaultFunctions) function.name: function.value})
+    ..addAll(myVariables)
+    ..addAll(myFunctions)
+    ..addAll(myClasses);
+
+  num slope(dynamic fn, num x) {
+    num helper(num Function(num) fn, num x) {
+      return (fn(x + 1e-5) - fn(x)) / (1e-5);
+    }
+
+    if (fn is num Function(num)) {
+      return helper(fn, x);
+    }
+    if (fn is CustomFunction) {
+      return helper((x) => fn.call([x], contextWithoutCalculus), x);
+    }
+    return double.nan;
+  }
+
+  num area(dynamic fn, num a, num b) {
+    if (fn is num Function(num)) {
+      return Calculus.integral(a, b, fn, 100);
+    }
+    if (fn is CustomFunction) {
+      return Calculus.integral(
+          a, b, (x) => fn.call([x], contextWithoutCalculus), 100);
+    }
+    return double.nan;
+  }
+
+  List<DefaultFunction> get defaultFunctions => [
+        const DefaultFunction("sqrt", sqrt, "Find the square root of x", ["x"]),
+        const DefaultFunction(
+            "pow", pow, "Elevate x to the power of b", ["x", "b"]),
+        DefaultFunction("mod", (x, b) => x % b,
+            "Find the remainder when x is divided by b", ["x", "b"]),
+        DefaultFunction("floor", (double x) => x.floor(),
+            "Round to the leftmost integer", ["x"]),
+        DefaultFunction("ceil", (double x) => x.ceil(),
+            "Round to the rightmost integer", ["x"]),
+        DefaultFunction("round", (double x) => x.round(),
+            "Round to the nearest integer", ["x"]),
+        const DefaultFunction(
+            "ln", log, "Find the natural logarithm of x", ["x"]),
+        DefaultFunction("log", (x) => log(x) / log(10),
+            "Find the common logarithm of x", ["x"]),
+        DefaultFunction("cos", (x) => cos(radDeg ? x : x * toRad),
+            "Find the cosine of x", ["x"]),
+        DefaultFunction("sin", (x) => sin(radDeg ? x : x * toRad),
+            "Find the sine of x", ["x"]),
+        DefaultFunction("tan", (x) => tan(radDeg ? x : x * toRad),
+            "Find the tangent of x", ["x"]),
+        DefaultFunction("acos", (x) => acos(x) * (radDeg ? 1 : toDeg),
+            "Find the arccosine of x", ["x"]),
+        DefaultFunction("asin", (x) => asin(x) * (radDeg ? 1 : toDeg),
+            "Find the arcsine of x", ["x"]),
+        DefaultFunction("atan", (x) => atan(x) * (radDeg ? 1 : toDeg),
+            "Find the arctangent of x", ["x"]),
+        DefaultFunction("slope", slope,
+            "Find the slope of fn(x) evaluated on x", ["fn", "x"]),
+        DefaultFunction(
+            "area",
+            area,
+            "Find the area under the curve of fn(x) from a to b",
+            ["fn", "a", "b"]),
+        const DefaultFunction("pi", pi, "Value of π", []),
+        const DefaultFunction("e", e, "Value of e", []),
+      ];
 
   static Map<String, dynamic> readVariables(SharedPreferences preferences) {
     final decoded =
@@ -124,13 +193,7 @@ class AppCubit extends Cubit<AppState> {
     await saveAppState();
   }
 
-  Map<String, dynamic> get context {
-    return {}
-      ..addAll(state.defaultFunctions)
-      ..addAll(state.myVariables)
-      ..addAll(state.myFunctions)
-      ..addAll(state.myClasses);
-  }
+  Map<String, dynamic> get context => state.context;
 
   bool nameExists(String name) {
     return state.myVariables.containsKey(name) ||

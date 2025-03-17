@@ -1,5 +1,4 @@
 import 'package:advanced_calculator_3/models/app_state.dart';
-import 'package:advanced_calculator_3/models/custom_class.dart';
 import 'package:advanced_calculator_3/pages/custom_keyboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,7 +8,6 @@ class CustomKeyboardInputField extends StatefulWidget {
   final InputDecoration? decoration;
   final void Function(dynamic)? onSubmitted;
   final KeyboardFunctionData? function;
-  final CustomClass? parent;
   final String initialView;
 
   const CustomKeyboardInputField(
@@ -18,7 +16,6 @@ class CustomKeyboardInputField extends StatefulWidget {
       this.onSubmitted,
       this.decoration,
       this.function,
-      this.parent,
       required this.initialView});
 
   @override
@@ -44,7 +41,6 @@ class _CustomKeyboardInputFieldState extends State<CustomKeyboardInputField> {
                 cubit: widget.cubit,
                 initialValue: text,
                 function: widget.function,
-                parent: widget.parent,
                 initialView: widget.initialView,
               );
             });
@@ -62,7 +58,6 @@ class CustomKeyboardPopUp extends StatelessWidget {
   final AppCubit cubit;
   final String? initialValue;
   final KeyboardFunctionData? function;
-  final CustomClass? parent;
   final String initialView;
 
   const CustomKeyboardPopUp(
@@ -70,7 +65,6 @@ class CustomKeyboardPopUp extends StatelessWidget {
       required this.cubit,
       this.initialValue,
       this.function,
-      this.parent,
       required this.initialView});
 
   @override
@@ -91,7 +85,6 @@ class CustomKeyboardPopUp extends StatelessWidget {
                 },
                 initialValue: initialValue,
                 function: function,
-                parent: parent,
                 readOnly: true,
                 initialView: initialView,
               ),

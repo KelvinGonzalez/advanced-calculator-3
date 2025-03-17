@@ -7,6 +7,7 @@ import 'package:advanced_calculator_3/models/custom_evaluator.dart';
 import 'package:advanced_calculator_3/models/custom_function.dart';
 import 'package:advanced_calculator_3/models/custom_instance.dart';
 import 'package:advanced_calculator_3/pages/widgets_lib.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -53,14 +54,15 @@ class KeyboardInputState {
 class KeyboardFunctionData {
   final CustomFunction function;
   final bool isMember;
+  final CustomClass? parent;
 
-  const KeyboardFunctionData(this.function, {this.isMember = false});
+  const KeyboardFunctionData(this.function,
+      {this.isMember = false, required this.parent});
 }
 
 class CustomKeyboard extends StatefulWidget {
   final void Function(String input, dynamic output) onSubmit;
   final KeyboardFunctionData? function;
-  final CustomClass? parent;
   final String? initialValue;
   final bool readOnly;
   final String initialView;
@@ -69,7 +71,6 @@ class CustomKeyboard extends StatefulWidget {
       {super.key,
       required this.onSubmit,
       this.function,
-      this.parent,
       this.initialValue,
       this.readOnly = false,
       this.initialView = "default"});
@@ -348,14 +349,20 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
   }
 
   List<KeyboardKey> getParentInstanceQuickActions(CustomClass parent) {
+    final showThis =
+        (widget.function?.isMember ?? false) && widget.function?.parent != null;
     return parent.fields
             .map((e) => KeyboardKey(Text(e), e,
-                isFunction: false, isMember: true, parent: parent))
+                isFunction: false,
+                isMember: true,
+                parent: showThis ? parent : null))
             .toList() +
         parent.functions.keys
             .where((e) => !CustomInstance.isSpecialFunction(e))
             .map((e) => KeyboardKey(Text(e), e,
-                isFunction: true, isMember: true, parent: parent))
+                isFunction: true,
+                isMember: true,
+                parent: showThis ? parent : null))
             .toList();
   }
 
@@ -431,6 +438,7 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
             className: k,
             readOnly: widget.readOnly,
             initialView: currentView,
+            function: widget.function,
           ))));
 
       const double outputFontSize = 32;
@@ -457,14 +465,14 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
       List<KeyboardKey> quickActions = [];
       if (widget.function != null) {
         quickActions = [
-              if (widget.function?.isMember ?? false)
+              if (widget.function!.isMember)
                 const KeyboardKey(Text("this"), "this")
             ] +
-            (widget.function?.function.parameters ?? [])
+            (widget.function!.function.parameters)
                 .map((e) => KeyboardKey(Text(e), e))
                 .toList() +
-            (widget.parent != null
-                ? getParentInstanceQuickActions(widget.parent!)
+            (widget.function?.parent != null
+                ? getParentInstanceQuickActions(widget.function!.parent!)
                 : []);
       } else if (cursorPosition > 1 && input[cursorPosition - 1] == ".") {
         final leftEnd = leftEndCursorPosition(cursorPosition - 1);
@@ -767,7 +775,9 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
                                                 }
                                               });
                                             },
-                                            child: const Icon(Icons.send)),
+                                            child: Icon(widget.readOnly
+                                                ? Icons.send
+                                                : CupertinoIcons.equal)),
                                       ),
                                     )
                                   ]),
@@ -801,25 +811,25 @@ class NumPad extends StatelessWidget {
         const KeyboardKey(NumpadText("7"), "7"),
         const KeyboardKey(NumpadText("8"), "8"),
         const KeyboardKey(NumpadText("9"), "9"),
-        const KeyboardKey(NumpadText("/"), "/"),
+        const KeyboardKey(Icon(CupertinoIcons.divide), "/"),
       ],
       [
         const KeyboardKey(NumpadText("4"), "4"),
         const KeyboardKey(NumpadText("5"), "5"),
         const KeyboardKey(NumpadText("6"), "6"),
-        const KeyboardKey(NumpadText("*"), "*"),
+        const KeyboardKey(Icon(CupertinoIcons.multiply), "*"),
       ],
       [
         const KeyboardKey(NumpadText("1"), "1"),
         const KeyboardKey(NumpadText("2"), "2"),
         const KeyboardKey(NumpadText("3"), "3"),
-        const KeyboardKey(NumpadText("-"), "-"),
+        const KeyboardKey(Icon(CupertinoIcons.minus), "-"),
       ],
       [
         const KeyboardKey(NumpadText("0"), "0"),
         const KeyboardKey(NumpadText(","), ","),
         const KeyboardKey(NumpadText("."), "."),
-        const KeyboardKey(NumpadText("+"), "+"),
+        const KeyboardKey(Icon(CupertinoIcons.plus), "+"),
       ],
     ];
 
@@ -925,10 +935,11 @@ class DefaultFunctionsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AppCubit, AppState>(builder: (context, state) {
+      final defaultFunctions = state.defaultFunctions;
       return KeyboardKeyTable(
-          keys: state.defaultFunctions.entries
-              .map((e) => KeyboardKey(Text(e.key), e.key,
-                  isFunction: e.value is Function))
+          keys: defaultFunctions
+              .map((e) =>
+                  KeyboardKey(Text(e.name), e.name, isFunction: e.isFunction))
               .toList(),
           specialKeys: [
             KeyboardKey(
@@ -940,7 +951,20 @@ class DefaultFunctionsView extends StatelessWidget {
                     style: const TextStyle(fontSize: 18)),
                 "floatInt")
           ],
-          writeToInput: writeToInput);
+          writeToInput: writeToInput,
+          onLongPress: (key) {
+            final item = defaultFunctions.firstWhere((e) => e.name == key.key);
+            showDialog(
+                context: context,
+                useRootNavigator: false,
+                builder: (context) => AlertDialog(
+                      title: Text(
+                          "${item.name}${item.isFunction ? "(${item.parameters.join(",")})" : ""}"),
+                      content: Text(item.description,
+                          style:
+                              TextStyle(fontSize: 16, color: Colors.grey[800])),
+                    ));
+          });
     });
   }
 }
@@ -1068,6 +1092,7 @@ class MyClassView extends StatelessWidget {
   final String className;
   final bool readOnly;
   final String initialView;
+  final KeyboardFunctionData? function;
 
   const MyClassView(
       {super.key,
@@ -1075,7 +1100,8 @@ class MyClassView extends StatelessWidget {
       required this.setView,
       required this.className,
       this.readOnly = false,
-      required this.initialView});
+      required this.initialView,
+      required this.function});
 
   @override
   Widget build(BuildContext context) {
@@ -1083,10 +1109,14 @@ class MyClassView extends StatelessWidget {
 
     return BlocBuilder<AppCubit, AppState>(builder: (context, state) {
       final parent = state.myClasses[className]!;
+      final showThis =
+          (function?.isMember ?? false) && function?.parent != null;
 
       final keys = parent.functions.entries
               .map((e) => KeyboardKey(Text(e.key), e.key,
-                  isMember: true, isFunction: true, parent: parent))
+                  isMember: true,
+                  isFunction: true,
+                  parent: showThis ? parent : null))
               .toList() +
           parent.staticVariables.entries
               .map((e) => KeyboardKey(Text(e.key), e.key,
@@ -1124,7 +1154,7 @@ class MyClassView extends StatelessWidget {
                                           Container(), e,
                                           isMember: true,
                                           isFunction: false,
-                                          parent: parent)),
+                                          parent: showThis ? parent : null)),
                                       child: Text(e,
                                           style:
                                               const TextStyle(fontSize: 18))))
@@ -1141,24 +1171,33 @@ class MyClassView extends StatelessWidget {
                   keys: keys,
                   writeToInput: writeToInput,
                   onLongPress: (key) {
-                    String alertText = "";
+                    String alertTitle = "";
+                    String alertContent = "";
                     if (parent.functions.containsKey(key.key)) {
                       final function = parent.functions[key.key]!;
-                      alertText =
-                          "${key.key}(${function.parameters.join(",")}) = ${function.function}";
+                      alertTitle =
+                          "${key.key}(${function.parameters.join(",")})";
+                      alertContent = function.function;
                     } else if (parent.staticVariables.containsKey(key.key)) {
                       final variable = parent.staticVariables[key.key]!;
-                      alertText = "${key.key} = $variable";
+                      alertTitle = key.key;
+                      alertContent = "$variable";
                     } else if (parent.staticFunctions.containsKey(key.key)) {
                       final function = parent.staticFunctions[key.key]!;
-                      alertText =
-                          "${key.key}(${function.parameters.join(",")}) = ${function.function}";
+                      alertTitle =
+                          "${key.key}(${function.parameters.join(",")})";
+                      alertContent = function.function;
                     }
                     showDialog(
                         context: context,
                         useRootNavigator: false,
                         builder: (context) => AlertDialog(
-                              title: Text(alertText),
+                              title: Text(alertTitle),
+                              content: Text(
+                                alertContent,
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.grey[800]),
+                              ),
                             ));
                   },
                 ),

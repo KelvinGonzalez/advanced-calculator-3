@@ -25,6 +25,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.1"
+  calculus:
+    dependency: "direct main"
+    description:
+      name: calculus
+      sha256: "75d652851624c53c95b78ed0392f9935310293fab0bf61ed29726a48f3d944da"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.8.0"
   characters:
     dependency: transitive
     description:

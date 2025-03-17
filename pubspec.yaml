@@ -38,6 +38,7 @@ dependencies:
   expressions: ^0.2.5+2
   flutter_bloc: ^9.1.0
   shared_preferences: ^2.3.3
+  calculus: ^0.8.0
 
 dev_dependencies:
   flutter_test:

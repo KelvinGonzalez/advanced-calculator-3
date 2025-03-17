@@ -262,8 +262,7 @@ Future<bool> getConfirmation(String question, BuildContext context,
 }
 
 Future<(String, dynamic)?> createVariable(
-    BuildContext context, AppCubit cubit, String initialView,
-    {CustomClass? parent}) async {
+    BuildContext context, AppCubit cubit, String initialView) async {
   final nameController = TextEditingController();
   dynamic value;
 
@@ -288,7 +287,6 @@ Future<(String, dynamic)?> createVariable(
                     cubit: cubit,
                     onSubmitted: (v) => value = v,
                     decoration: const InputDecoration(labelText: "Value"),
-                    parent: parent,
                     initialView: initialView,
                   ),
                 ),
@@ -297,8 +295,8 @@ Future<(String, dynamic)?> createVariable(
             actions: [
               IconButton(
                   onPressed: () {
-                    final variable =
-                        cubit.getValidVariable(nameController.text, value);
+                    final variable = cubit.getValidVariable(
+                        nameController.text.trim(), value);
                     if (variable == null) return;
                     Navigator.pop(context, variable);
                   },
@@ -382,11 +380,14 @@ Future<(String, CustomFunction)?> createFunction(
                         });
                       },
                       function: KeyboardFunctionData(
-                        CustomFunction("",
-                            parameterControllers.map((e) => e.text).toList()),
+                        CustomFunction(
+                            "",
+                            parameterControllers
+                                .map((e) => e.text.trim())
+                                .toList()),
                         isMember: isMember,
+                        parent: parent,
                       ),
-                      parent: parent,
                       initialView: initialView,
                     ),
                   ],
@@ -396,9 +397,11 @@ Future<(String, CustomFunction)?> createFunction(
                 IconButton(
                     onPressed: () {
                       final validFunction = cubit.getValidFunction(
-                          nameController.text,
+                          nameController.text.trim(),
                           functionValue,
-                          parameterControllers.map((e) => e.text).toList());
+                          parameterControllers
+                              .map((e) => e.text.trim())
+                              .toList());
                       if (validFunction == null) return;
                       Navigator.pop(context, validFunction);
                     },
@@ -443,7 +446,7 @@ Future<void> createClass(BuildContext context, AppCubit cubit) async {
                                           try {
                                             final importedClass =
                                                 CustomClass.fromJson(jsonDecode(
-                                                    controller.text));
+                                                    controller.text.trim()));
                                             final result = cubit.addClass(
                                                 importedClass.name,
                                                 importedClass.fields,
@@ -520,8 +523,8 @@ Future<void> createClass(BuildContext context, AppCubit cubit) async {
                 IconButton(
                     onPressed: () {
                       final result = cubit.addClass(
-                          nameController.text,
-                          fieldControllers.map((e) => e.text).toList(),
+                          nameController.text.trim(),
+                          fieldControllers.map((e) => e.text.trim()).toList(),
                           {},
                           {},
                           {});
@@ -621,7 +624,8 @@ Future<void> editClass(String name, BuildContext context, AppCubit cubit,
                                                   onPressed: () {
                                                     final fields =
                                                         fieldControllers
-                                                            .map((e) => e.text)
+                                                            .map((e) =>
+                                                                e.text.trim())
                                                             .toList();
                                                     final result =
                                                         cubit.addClass(
@@ -712,8 +716,7 @@ Future<void> editClass(String name, BuildContext context, AppCubit cubit,
                           IconButton(
                               onPressed: () async {
                                 final variable = await createVariable(
-                                    context, cubit, initialView,
-                                    parent: original);
+                                    context, cubit, initialView);
                                 if (variable == null) return;
                                 cubit.addClass(
                                     name,
