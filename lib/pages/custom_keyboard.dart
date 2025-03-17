@@ -201,6 +201,10 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
   }
 
   void _defaultCase(KeyboardKey key) {
+    final usingCalculus = cursorPosition >= 2 &&
+        input[cursorPosition - 1] == "(" &&
+        ["slope", "area"].contains(input[cursorPosition - 2]) &&
+        !key.isMember;
     if (key.parent != null) {
       if (key.isMember) {
         if (cursorPosition <= 0 ||
@@ -211,10 +215,7 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
         }
       } else {
         if (cursorPosition <= 0 ||
-                ![key.parent!.name, "."].contains(input[cursorPosition - 1])
-            //     (input[cursorPosition - 1] != key.parent!.name &&
-            //         input[cursorPosition - 1] != ".")
-            ) {
+            ![key.parent!.name, "."].contains(input[cursorPosition - 1])) {
           input.insert(cursorPosition, key.parent!.name);
           cursorPosition++;
         }
@@ -228,7 +229,7 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
     }
     input.insert(cursorPosition, key.key);
     cursorPosition++;
-    if (key.isFunction) {
+    if (!usingCalculus && key.isFunction) {
       if (cursorPosition >= input.length || input[cursorPosition] != "(") {
         final rightEnd = rightEndCursorPosition() ?? cursorPosition;
         input.insert(cursorPosition, "(");
@@ -450,15 +451,16 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
       } else {
         dynamic tempResult =
             CustomEvaluator.evaluate(mergedInput, cubit.context);
-        if (!state.floatInt && tempResult is double) {
-          tempResult = adjustSigFigs(tempResult, 4);
-        }
         result = tempResult != null &&
                 tempResult is! Function &&
                 tempResult is! CustomFunction &&
                 tempResult is! CustomClass &&
-                tempResult is! InstanceFunctionPair
-            ? tempResult
+                tempResult is! InstanceFunctionPair &&
+                (tempResult is! num ||
+                    (!tempResult.isNaN && tempResult.isFinite))
+            ? (!state.floatInt && tempResult is double
+                ? adjustSigFigs(tempResult, 4)
+                : tempResult)
             : null;
       }
 

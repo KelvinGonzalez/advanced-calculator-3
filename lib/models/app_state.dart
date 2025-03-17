@@ -77,18 +77,46 @@ class AppState {
     return double.nan;
   }
 
+  static int factorial(int n) {
+    if (n < 0) {
+      throw ArgumentError("Factorial is not defined for negative numbers");
+    }
+    int result = 1;
+    for (int i = 2; i <= n; i++) {
+      result *= i;
+    }
+    return result;
+  }
+
+  static int gcd(int a, int b) {
+    while (b != 0) {
+      int temp = b;
+      b = a % b;
+      a = temp;
+    }
+    return a.abs();
+  }
+
   List<DefaultFunction> get defaultFunctions => [
         const DefaultFunction("sqrt", sqrt, "Find the square root of x", ["x"]),
         const DefaultFunction(
             "pow", pow, "Elevate x to the power of b", ["x", "b"]),
         DefaultFunction("mod", (x, b) => x % b,
             "Find the remainder when x is divided by b", ["x", "b"]),
+        const DefaultFunction(
+            "fact", factorial, "Find the factorial of n", ["n"]),
         DefaultFunction("floor", (double x) => x.floor(),
             "Round to the leftmost integer", ["x"]),
         DefaultFunction("ceil", (double x) => x.ceil(),
             "Round to the rightmost integer", ["x"]),
         DefaultFunction("round", (double x) => x.round(),
             "Round to the nearest integer", ["x"]),
+        DefaultFunction(
+            "abs", (num x) => x.abs(), "Find the absolute value of x", ["x"]),
+        DefaultFunction("sign", (num x) => x == 0 ? 0 : x / x.abs(),
+            "Find the signum of x", ["x"]),
+        const DefaultFunction("gcd", gcd,
+            "Find the greatest common denominator between a and b", ["a", "b"]),
         const DefaultFunction(
             "ln", log, "Find the natural logarithm of x", ["x"]),
         DefaultFunction("log", (x) => log(x) / log(10),
@@ -103,8 +131,12 @@ class AppState {
             "Find the arccosine of x", ["x"]),
         DefaultFunction("asin", (x) => asin(x) * (radDeg ? 1 : toDeg),
             "Find the arcsine of x", ["x"]),
-        DefaultFunction("atan", (x) => atan(x) * (radDeg ? 1 : toDeg),
-            "Find the arctangent of x", ["x"]),
+        DefaultFunction(
+            "atan",
+            (x, [b]) =>
+                (b == null ? atan(x) : atan2(x, b)) * (radDeg ? 1 : toDeg),
+            "Find the arctangent of x\n\nFind the angle between the x-axis and <b, x> if b is provided",
+            ["x", "b?"]),
         DefaultFunction("slope", slope,
             "Find the slope of fn(x) evaluated on x", ["fn", "x"]),
         DefaultFunction(
