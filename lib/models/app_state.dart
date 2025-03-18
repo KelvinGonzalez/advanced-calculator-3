@@ -5,6 +5,8 @@ import 'package:advanced_calculator_3/models/custom_class.dart';
 import 'package:calculus/calculus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase/supabase.dart';
+import 'package:uuid/v4.dart';
 import 'dart:convert';
 
 import 'custom_function.dart';
@@ -29,17 +31,22 @@ class AppState {
   final bool radDeg;
   final bool floatInt;
   final List<(String, String)> logs;
+  final String uuid;
+  final SupabaseClient supabase;
 
   static const toDeg = 180 / pi;
   static const toRad = pi / 180;
 
-  const AppState(
-      {required this.myVariables,
-      required this.myFunctions,
-      required this.myClasses,
-      required this.radDeg,
-      required this.floatInt,
-      required this.logs});
+  const AppState({
+    required this.myVariables,
+    required this.myFunctions,
+    required this.myClasses,
+    required this.radDeg,
+    required this.floatInt,
+    required this.logs,
+    required this.uuid,
+    required this.supabase,
+  });
 
   Map<String, dynamic> get contextWithoutCalculus => Map.from(context)
     ..remove("slope")
@@ -177,7 +184,14 @@ class AppState {
     return preferences.getBool("floatInt") ?? true;
   }
 
+  static String readUuid(SharedPreferences preferences) {
+    return preferences.getString("uuid") ?? const UuidV4().generate();
+  }
+
   static AppState loadFromPreferences(SharedPreferences preferences) {
+    final supabase = SupabaseClient(
+        const String.fromEnvironment("SUPABASE_URL"),
+        const String.fromEnvironment("SUPABASE_KEY"));
     return AppState(
       myVariables: readVariables(preferences),
       myFunctions: readFunctions(preferences),
@@ -185,6 +199,8 @@ class AppState {
       radDeg: readRadDeg(preferences),
       floatInt: readFloatInt(preferences),
       logs: [],
+      uuid: readUuid(preferences),
+      supabase: supabase,
     );
   }
 }
@@ -205,6 +221,7 @@ class AppCubit extends Cubit<AppState> {
         jsonEncode(state.myClasses.map((k, v) => MapEntry(k, v.toJson()))));
     await preferences.setBool("radDeg", state.radDeg);
     await preferences.setBool("floatInt", state.floatInt);
+    await preferences.setString("uuid", state.uuid);
   }
 
   Future<void> update(
@@ -216,12 +233,15 @@ class AppCubit extends Cubit<AppState> {
       bool? floatInt,
       List<(String, String)>? logs}) async {
     emit(AppState(
-        myVariables: myVariables ?? state.myVariables,
-        myFunctions: myFunctions ?? state.myFunctions,
-        myClasses: myClasses ?? state.myClasses,
-        radDeg: radDeg ?? state.radDeg,
-        floatInt: floatInt ?? state.floatInt,
-        logs: logs ?? state.logs));
+      myVariables: myVariables ?? state.myVariables,
+      myFunctions: myFunctions ?? state.myFunctions,
+      myClasses: myClasses ?? state.myClasses,
+      radDeg: radDeg ?? state.radDeg,
+      floatInt: floatInt ?? state.floatInt,
+      logs: logs ?? state.logs,
+      uuid: state.uuid,
+      supabase: state.supabase,
+    ));
     await saveAppState();
   }
 

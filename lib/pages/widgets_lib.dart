@@ -1,13 +1,13 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:advanced_calculator_3/models/app_state.dart';
 import 'package:advanced_calculator_3/models/custom_class.dart';
 import 'package:advanced_calculator_3/models/custom_function.dart';
+import 'package:advanced_calculator_3/models/shared_class.dart';
 import 'package:advanced_calculator_3/pages/custom_keyboard.dart';
 import 'package:advanced_calculator_3/pages/custom_keyboard_input_field.dart';
+import 'package:advanced_calculator_3/pages/shared_classes_page.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' as services;
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class HeightlessDivider extends StatelessWidget {
@@ -425,43 +425,12 @@ Future<void> createClass(BuildContext context, AppCubit cubit) async {
                   const Expanded(child: Text("Create Class")),
                   IconButton(
                       onPressed: () async {
-                        final clipboardData =
-                            await services.Clipboard.getData('text/plain');
-                        if (!context.mounted) return;
-                        final controller =
-                            TextEditingController(text: clipboardData?.text);
-                        showDialog(
-                            context: context,
-                            useRootNavigator: false,
-                            builder: (context) => AlertDialog(
-                                  title: const Text("Import Class"),
-                                  content: TextField(
-                                    controller: controller,
-                                    decoration: const InputDecoration(
-                                        labelText: "Encoded Class"),
-                                  ),
-                                  actions: [
-                                    IconButton(
-                                        onPressed: () {
-                                          try {
-                                            final importedClass =
-                                                CustomClass.fromJson(jsonDecode(
-                                                    controller.text.trim()));
-                                            final result = cubit.addClass(
-                                                importedClass.name,
-                                                importedClass.fields,
-                                                importedClass.functions,
-                                                importedClass.staticVariables,
-                                                importedClass.staticFunctions);
-                                            if (!result) return;
-                                            Navigator.of(context)
-                                              ..pop()
-                                              ..pop();
-                                          } catch (_) {}
-                                        },
-                                        icon: const Icon(Icons.download)),
-                                  ],
-                                ));
+                        Navigator.pop(context);
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    SharedClassesPage(cubit: cubit)));
                       },
                       icon: const Icon(Icons.download))
                 ],
@@ -812,19 +781,15 @@ Future<void> editClass(String name, BuildContext context, AppCubit cubit,
                 ),
                 actions: [
                   IconButton(
-                      onPressed: () {
-                        final jsonString = jsonEncode(original.toJson());
-                        services.Clipboard.setData(
-                                services.ClipboardData(text: jsonString))
-                            .then((_) {
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context)
-                            ..hideCurrentSnackBar()
-                            ..showSnackBar(SnackBar(
-                                content: Text(
-                                    "Copied serialized ${original.name}")));
-                          Navigator.pop(context);
-                        });
+                      onPressed: () async {
+                        await SharedClass.shareClass(
+                            original, state.uuid, state.supabase);
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                              SnackBar(content: Text("Exported $original")));
+                        Navigator.pop(context);
                       },
                       icon: const Icon(Icons.upload)),
                   IconButton(
