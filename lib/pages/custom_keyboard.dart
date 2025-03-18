@@ -144,10 +144,10 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
             cursorPosition++;
             break;
           }
-        case "<":
+        case "<-":
           if (cursorPosition > 0) cursorPosition--;
           break;
-        case ">":
+        case "->":
           if (cursorPosition < input.length) cursorPosition++;
           break;
         case "delete":
@@ -421,6 +421,7 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
 
       final Map<String, Widget> functionWidgets = {
         "default": DefaultFunctionsView(writeToInput: writeToInput),
+        "logic": LogicFunctionsView(writeToInput: writeToInput),
         "variables": MyVariablesView(
           writeToInput: writeToInput,
           readOnly: widget.readOnly,
@@ -470,10 +471,20 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
               if (widget.function!.isMember)
                 const KeyboardKey(Text("this"), "this")
             ] +
-            (widget.function!.function.parameters)
+            widget.function!.function.parameters
+                .where((e) => e.isNotEmpty)
                 .map((e) => KeyboardKey(Text(e), e))
                 .toList() +
-            (widget.function?.parent != null
+            [
+              if (widget.function!.function.function.isNotEmpty)
+                KeyboardKey(Text(widget.function!.function.function),
+                    widget.function!.function.function,
+                    isFunction: true,
+                    isMember: widget.function!.isMember,
+                    parent: widget.function!.parent)
+            ] // Use function.function to obtain name
+            +
+            (widget.function!.parent != null
                 ? getParentInstanceQuickActions(widget.function!.parent!)
                 : []);
       } else if (cursorPosition > 1 && input[cursorPosition - 1] == ".") {
@@ -694,6 +705,10 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
                                                         text: "Default"),
                                                     CategoryButton(
                                                         onPressed: () =>
+                                                            setView("logic"),
+                                                        text: "Logic"),
+                                                    CategoryButton(
+                                                        onPressed: () =>
                                                             setView(
                                                                 "variables"),
                                                         text: "Variables"),
@@ -739,10 +754,10 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
                             if (cursorDragValue.abs() < 10) return;
                             if (cursorDragValue < 0) {
                               writeToInput(
-                                  const KeyboardKey(Placeholder(), "<"));
+                                  const KeyboardKey(Placeholder(), "<-"));
                             } else {
                               writeToInput(
-                                  const KeyboardKey(Placeholder(), ">"));
+                                  const KeyboardKey(Placeholder(), "->"));
                             }
                             cursorDragValue = 0;
                           },
@@ -750,9 +765,9 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                     const KeyboardKey(
-                                        Icon(Icons.arrow_back), "<"),
+                                        Icon(Icons.arrow_back), "<-"),
                                     const KeyboardKey(
-                                        Icon(Icons.arrow_forward), ">"),
+                                        Icon(Icons.arrow_forward), "->"),
                                     const KeyboardKey(Icon(Icons.undo), "undo"),
                                   ]
                                       .map((e) => NumpadKey(e, writeToInput))
@@ -851,13 +866,15 @@ class KeyboardKeyTable extends StatelessWidget {
   final List<KeyboardKey>? specialKeys;
   final void Function(KeyboardKey) writeToInput;
   final void Function(KeyboardKey)? onLongPress;
+  final bool groupKeys;
 
   const KeyboardKeyTable(
       {super.key,
       required this.keys,
       this.specialKeys,
       required this.writeToInput,
-      this.onLongPress});
+      this.onLongPress,
+      this.groupKeys = true});
 
   List<Widget> generateGroupRows(List<KeyboardKey> keys) {
     const cols = 2;
@@ -894,15 +911,21 @@ class KeyboardKeyTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final keyGroups = <int, List<KeyboardKey>>{};
-    for (final key in keys) {
-      final value = key.getCategoryCompareValue();
-      if (!keyGroups.containsKey(value)) keyGroups[value] = [];
-      keyGroups[value]!.add(key);
-    }
+    late final List<List<KeyboardKey>> groupedKeys;
+    if (groupKeys) {
+      final keyGroups = <int, List<KeyboardKey>>{};
+      for (final key in keys) {
+        final value = key.getCategoryCompareValue();
+        if (!keyGroups.containsKey(value)) keyGroups[value] = [];
+        keyGroups[value]!.add(key);
+      }
 
-    final sortedGroups = keyGroups.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
+      final sortedGroups = keyGroups.entries.toList()
+        ..sort((a, b) => a.key.compareTo(b.key));
+      groupedKeys = sortedGroups.map((e) => e.value).toList();
+    } else {
+      groupedKeys = [keys];
+    }
 
     return SingleChildScrollView(
       child: Column(
@@ -919,10 +942,10 @@ class KeyboardKeyTable extends StatelessWidget {
                       .toList()),
               const HeightlessDivider(),
             ] +
-            sortedGroups
+            groupedKeys
                 .expand((e) =>
-                    generateGroupRows(e.value) +
-                    [if (e != sortedGroups.last) const HeightlessDivider()])
+                    generateGroupRows(e) +
+                    [if (e != groupedKeys.last) const HeightlessDivider()])
                 .toList(),
       ),
     );
@@ -956,6 +979,39 @@ class DefaultFunctionsView extends StatelessWidget {
           writeToInput: writeToInput,
           onLongPress: (key) {
             final item = defaultFunctions.firstWhere((e) => e.name == key.key);
+            showDialog(
+                context: context,
+                useRootNavigator: false,
+                builder: (context) => AlertDialog(
+                      title: Text(
+                          "${item.name}${item.isFunction ? "(${item.parameters.join(",")})" : ""}"),
+                      content: Text(item.description,
+                          style:
+                              TextStyle(fontSize: 16, color: Colors.grey[800])),
+                    ));
+          });
+    });
+  }
+}
+
+class LogicFunctionsView extends StatelessWidget {
+  final void Function(KeyboardKey) writeToInput;
+
+  const LogicFunctionsView({super.key, required this.writeToInput});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AppCubit, AppState>(builder: (context, state) {
+      const logicFunctions = AppState.logicFunctions;
+      return KeyboardKeyTable(
+          keys: logicFunctions
+              .map((e) =>
+                  KeyboardKey(Text(e.name), e.value, isFunction: e.isFunction))
+              .toList(),
+          groupKeys: false,
+          writeToInput: writeToInput,
+          onLongPress: (key) {
+            final item = logicFunctions.firstWhere((e) => e.name == key.key);
             showDialog(
                 context: context,
                 useRootNavigator: false,

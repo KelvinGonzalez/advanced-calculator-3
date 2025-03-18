@@ -323,6 +323,7 @@ Future<(String, CustomFunction)?> createFunction(
                   children: [
                     TextField(
                       controller: nameController,
+                      onChanged: (_) => stfSetState(() {}),
                       decoration: const InputDecoration(labelText: "Name"),
                     ),
                     const Divider(),
@@ -381,7 +382,8 @@ Future<(String, CustomFunction)?> createFunction(
                       },
                       function: KeyboardFunctionData(
                         CustomFunction(
-                            "",
+                            nameController.text
+                                .trim(), // Use definition to pass in name
                             parameterControllers
                                 .map((e) => e.text.trim())
                                 .toList()),

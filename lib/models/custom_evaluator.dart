@@ -59,6 +59,12 @@ class CustomEvaluator extends ExpressionEvaluator {
   @override
   evalCallExpression(CallExpression expression, Map<String, dynamic> context) {
     var callee = eval(expression.callee, context);
+    // Cond hack since can't do conditional recursion if all arguments are evaluated before function call
+    if (context["cond"] == callee) {
+      return eval(expression.arguments[0], context)
+          ? eval(expression.arguments[1], context)
+          : eval(expression.arguments[2], context);
+    }
     var arguments = expression.arguments.map((e) => eval(e, context)).toList();
     if (callee is CustomFunction) {
       return callee.call(arguments, context);

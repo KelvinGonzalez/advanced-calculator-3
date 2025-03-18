@@ -1,5 +1,3 @@
-import 'package:expressions/expressions.dart';
-
 import 'custom_evaluator.dart';
 
 class CustomFunction {
@@ -15,10 +13,8 @@ class CustomFunction {
     final mappedArguments = {
       for (int i = 0; i < arguments.length; i++) parameters[i]: arguments[i]
     };
-    return const CustomEvaluator().eval(
-      Expression.parse(function),
-      Map.from(context ?? {})..addAll(mappedArguments),
-    );
+    return CustomEvaluator.evaluate(
+        function, Map.from(context ?? {})..addAll(mappedArguments));
   }
 
   Map<String, dynamic> toJson() => {

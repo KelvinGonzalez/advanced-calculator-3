@@ -8,7 +8,7 @@ class CustomInstance {
   static const unary = {
     "-": "neg",
     "+": "pos",
-    // "!": "not",
+    "!": "not",
     // "~": "inv",
   };
 
@@ -18,15 +18,15 @@ class CustomInstance {
     "*": "mul",
     "/": "div",
     // "%": "mod",
-    // "&": "and",
-    // "|": "or",
-    // "^": "xor",
+    "&": "and",
+    "|": "or",
+    "^": "xor",
   };
 
   static bool isSpecialFunction(String name) =>
-      unary.values.contains(name) || binary.values.contains(name)
-      // || ["cmp"].contains(name)
-      ;
+      unary.values.contains(name) ||
+      binary.values.contains(name) ||
+      ["cmp"].contains(name);
 
   const CustomInstance(this.className, this.fieldValues);
 
@@ -47,14 +47,14 @@ class CustomInstance {
 
   dynamic operatorCall(String operator, CustomClass parent,
       {dynamic other, Map<String, dynamic>? context}) {
-    // final cmp = {
-    //   "==": (x) => x == 0,
-    //   "!=": (x) => x != 0,
-    //   ">": (x) => x > 0,
-    //   "<": (x) => x < 0,
-    //   ">=": (x) => x >= 0,
-    //   "<=": (x) => x <= 0,
-    // };
+    final cmp = {
+      "==": (x) => x == 0,
+      "!=": (x) => x != 0,
+      ">": (x) => x > 0,
+      "<": (x) => x < 0,
+      ">=": (x) => x >= 0,
+      "<=": (x) => x <= 0,
+    };
 
     if (other == null) {
       if (unary.containsKey(operator) &&
@@ -63,11 +63,11 @@ class CustomInstance {
         return InstanceFunctionPair(this, function).call([], parent, context);
       }
     } else {
-      // if (cmp.containsKey(operator) && parent.functions.containsKey("cmp")) {
-      //   final function = parent.functions["cmp"]!;
-      //   return cmp[operator]!(InstanceFunctionPair(this, function)
-      //       .call([other], parent, context));
-      // }
+      if (cmp.containsKey(operator) && parent.functions.containsKey("cmp")) {
+        final function = parent.functions["cmp"]!;
+        return cmp[operator]!(InstanceFunctionPair(this, function)
+            .call([other], parent, context));
+      }
       if (binary.containsKey(operator) &&
           parent.functions.containsKey(binary[operator])) {
         final function = parent.functions[binary[operator]]!;

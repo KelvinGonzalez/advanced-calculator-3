@@ -18,7 +18,7 @@ class DefaultFunction {
   final String description;
   final List<String> parameters;
 
-  bool get isFunction => value is Function;
+  bool get isFunction => value is Function || parameters.isNotEmpty;
 
   const DefaultFunction(
       this.name, this.value, this.description, this.parameters);
@@ -48,6 +48,10 @@ class AppState {
     required this.supabase,
   });
 
+  Map<String, dynamic> get hiddenContext => {
+        "cond": const CustomFunction("x ? a : b", ["x", "a", "b"]),
+      };
+
   Map<String, dynamic> get contextWithoutCalculus => Map.from(context)
     ..remove("slope")
     ..remove("area");
@@ -55,6 +59,7 @@ class AppState {
   Map<String, dynamic> get context => {}
     ..addAll(
         {for (var function in defaultFunctions) function.name: function.value})
+    ..addAll(hiddenContext)
     ..addAll(myVariables)
     ..addAll(myFunctions)
     ..addAll(myClasses);
@@ -154,6 +159,23 @@ class AppState {
         const DefaultFunction("pi", pi, "Value of π", []),
         const DefaultFunction("e", e, "Value of e", []),
       ];
+
+  static const List<DefaultFunction> logicFunctions = [
+    DefaultFunction("false", "false", "Constant for false", []),
+    DefaultFunction("true", "true", "Constant for true", []),
+    DefaultFunction("!", "!", "Not operator", []),
+    DefaultFunction("=", "=", "Double for equals, can pair with others", []),
+    DefaultFunction("<", "<",
+        "If single then less than, if double then left bit-shift", []),
+    DefaultFunction(">", ">",
+        "If single then greater than, if double then right bit-shift", []),
+    DefaultFunction(
+        "&", "&", "If single then bitwise AND, if double then logical AND", []),
+    DefaultFunction(
+        "|", "|", "If single then bitwise OR, if double then logical OR", []),
+    DefaultFunction("^", "^", "Bitwise XOR operator", []),
+    DefaultFunction("cond", "cond", "If x then a, else b", ["x", "a", "b"]),
+  ];
 
   static Map<String, dynamic> readVariables(SharedPreferences preferences) {
     final decoded =
