@@ -14,8 +14,10 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final keyboardGlobalKey = createGlobalKey();
 
-  void overwriteInput(String input) {
-    keyboardGlobalKey.currentState?.setInputFromString(input);
+  void writeBatchStringToInput(String batch,
+      [bool encloseInParenthesis = false]) {
+    keyboardGlobalKey.currentState
+        ?.writeBatchStringToInput(batch, encloseInParenthesis);
     Navigator.of(context).pop();
   }
 
@@ -52,7 +54,8 @@ class _HomePageState extends State<HomePage> {
                                           Expanded(
                                               child: TextButton(
                                                   onPressed: () =>
-                                                      overwriteInput(e.$1),
+                                                      writeBatchStringToInput(
+                                                          e.$1, true),
                                                   child: Text(e.$1,
                                                       style: const TextStyle(
                                                           fontSize: 16)))),
@@ -60,7 +63,8 @@ class _HomePageState extends State<HomePage> {
                                           Expanded(
                                               child: TextButton(
                                                   onPressed: () =>
-                                                      overwriteInput(e.$2),
+                                                      writeBatchStringToInput(
+                                                          e.$2),
                                                   child: Text(e.$2,
                                                       style: const TextStyle(
                                                           fontSize: 16)))),

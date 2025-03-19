@@ -396,6 +396,27 @@ class _CustomKeyboardState extends State<CustomKeyboard> {
     });
   }
 
+  void writeBatchStringToInput(String batch,
+      [bool encloseInParenthesis = false]) {
+    final keys = convertResultToInput(batch);
+    if (keys == null) return;
+    recordState();
+    setState(() {
+      if (encloseInParenthesis) {
+        input.insert(cursorPosition, "(");
+        cursorPosition++;
+      }
+      for (var key in keys) {
+        input.insert(cursorPosition, key);
+        cursorPosition++;
+      }
+      if (encloseInParenthesis) {
+        input.insert(cursorPosition, ")");
+        cursorPosition++;
+      }
+    });
+  }
+
   double adjustSigFigs(double num, int sigFigs) {
     if (num == 0) return 0;
     double scale =
