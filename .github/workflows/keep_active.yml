@@ -1,0 +1,28 @@
+name: Keep Active
+
+on:
+  schedule:
+    - cron: '0 0 * * 0,3' # Runs at 00:00 UTC on Sundays and Wednesdays
+  workflow_dispatch:
+
+jobs:
+  run_script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Get dependencies
+        run: dart pub get
+
+      - name: Run Dart script with environment variables
+        run: dart run lib/scripts/keep_active.dart
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
