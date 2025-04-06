@@ -8,4 +8,5 @@ void main() async {
 
   await supabase.rpc("keep_active");
   print("Request sent");
+  exit(0);
 }

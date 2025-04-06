@@ -13,13 +13,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Dart SDK
-        uses: dart-lang/setup-dart@v1
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2.16.0
         with:
-          sdk: stable
+          flutter-version: "3.27.4"
+          channel: "stable"
 
       - name: Get dependencies
-        run: dart pub get
+        run: flutter pub get
 
       - name: Run Dart script with environment variables
         run: dart run lib/scripts/keep_active.dart
