@@ -10,20 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Flutter SDK
-        uses: subosito/flutter-action@v2.16.0
-        with:
-          flutter-version: "3.27.4"
-          channel: "stable"
-
-      - name: Get dependencies
-        run: flutter pub get
-
-      - name: Run Dart script with environment variables
-        run: dart run lib/scripts/keep_active.dart
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      - name: Call Supabase Keep Active Function
+        run: |
+          curl -X POST \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/keep_active" \
+            -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            --fail
+          echo "Keep Active request sent successfully."
