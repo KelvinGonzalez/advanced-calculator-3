@@ -211,8 +211,9 @@ class AppState {
   }
 
   static AppState loadFromPreferences(SharedPreferences preferences) {
-    final sharedClassCollection =
-        CollectionAggregator.instance.collection("sharedClasses");
+    final sharedClassCollection = (CollectionAggregator.instance
+          ..setAttemptReplaceWhenAddWithId(false))
+        .collection("sharedClasses");
     return AppState(
       myVariables: readVariables(preferences),
       myFunctions: readFunctions(preferences),

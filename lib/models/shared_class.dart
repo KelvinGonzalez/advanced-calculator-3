@@ -47,7 +47,11 @@ class SharedClass {
   static Future<void> shareClass(CustomClass customClass, String creatorId,
       AggregatedCollection collection) async {
     final id = "$creatorId:${customClass.name}";
-    await (await collection.doc(id))?.delete();
+    final reference = await collection.doc(id);
+    if (reference != null) {
+      await reference.update({"class_data": customClass.toJson()});
+      return;
+    }
     await collection.add({
       "class_data": customClass.toJson(),
       "creator_id": creatorId,
