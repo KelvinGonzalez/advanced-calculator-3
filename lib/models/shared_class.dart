@@ -1,67 +1,67 @@
 import 'package:advanced_calculator_3/models/custom_class.dart';
-import 'package:supabase/supabase.dart';
-import 'package:uuid/v4.dart';
+import 'package:aggregated_collection/aggregated_collection.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum SearchSort {
-  recent("recent"),
-  oldest("oldest"),
-  popular("popular");
-
-  final String key;
-
-  const SearchSort(this.key);
-}
+enum SearchSort { recent, oldest, popular }
 
 class SharedClass {
   final String name;
   final CustomClass customClass;
   final String creatorId;
+  final Timestamp createdAt;
   final int importCount;
-  final DateTime createdAt;
 
-  const SharedClass(this.name, this.customClass, this.creatorId,
-      this.importCount, this.createdAt);
+  const SharedClass(this.name, this.customClass, this.creatorId, this.createdAt,
+      this.importCount);
 
-  static Future<List<SharedClass>> search(
-      String query, int page, SearchSort sort, SupabaseClient supabase,
-      [int pagesCount = 20]) async {
-    final result = List<Map<String, dynamic>>.from(await supabase
-        .rpc("search_shared_classes", params: {
-      "query": query,
-      "page": page,
-      "sort": sort.key,
-      "pages_count": pagesCount
-    }));
-    return result
-        .map((e) => SharedClass(
-            e["class_name"],
-            CustomClass.fromJson(e["class_json"]),
-            e["creator_id"],
-            e["import_count"],
-            DateTime.parse(e["created_at"])))
-        .toList();
+  static SharedClass fromDocument(AggregatedDocumentData document) {
+    final customClass = CustomClass.fromJson(document.get("class_data"));
+    return SharedClass(
+        customClass.name,
+        customClass,
+        document.get("creator_id"),
+        document.get("created_at") ?? Timestamp.now(),
+        document.get("import_count"));
   }
 
-  static Future<int> getSharedClassesCount(SupabaseClient supabase) async {
-    return await supabase.rpc("get_shared_classes_count");
+  static List<AggregatedDocumentData> search(
+      List<AggregatedDocumentData> list, String query, SearchSort sort) {
+    return list
+        .where((e) =>
+            fromDocument(e).name.toLowerCase().startsWith(query.toLowerCase()))
+        .toList()
+      ..sort((a, b) {
+        final classA = fromDocument(a);
+        final classB = fromDocument(b);
+        switch (sort) {
+          case SearchSort.recent:
+            return -classA.createdAt.compareTo(classB.createdAt);
+          case SearchSort.oldest:
+            return classA.createdAt.compareTo(classB.createdAt);
+          case SearchSort.popular:
+            return -classA.importCount.compareTo(classB.importCount);
+        }
+      });
   }
 
   static Future<void> shareClass(CustomClass customClass, String creatorId,
-      SupabaseClient supabase) async {
-    return await supabase.rpc("add_shared_class", params: {
-      "class_name": customClass.name,
-      "class_json": customClass.toJson(),
-      "creator_id": creatorId
-    });
+      AggregatedCollection collection) async {
+    final id = "$creatorId:${customClass.name}";
+    await (await collection.doc(id))?.delete();
+    await collection.add({
+      "class_data": customClass.toJson(),
+      "creator_id": creatorId,
+      "created_at": FieldValue.serverTimestamp(),
+      "import_count": 0,
+    }, id);
   }
 
-  Future<void> delete(SupabaseClient supabase) async {
-    return await supabase.rpc("delete_shared_class",
-        params: {"class_name": customClass.name, "creator_id": creatorId});
+  static Future<void> delete(AggregatedDocumentReference reference) async {
+    await reference.delete();
   }
 
-  Future<void> markImported(SupabaseClient supabase) async {
-    return await supabase.rpc("mark_imported",
-        params: {"class_name": customClass.name, "creator_id": creatorId});
+  static Future<void> markImported(
+      AggregatedDocumentReference reference) async {
+    await reference.update({"import_count": FieldValue.increment(1)});
   }
 }

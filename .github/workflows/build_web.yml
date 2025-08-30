@@ -30,7 +30,7 @@ jobs:
 
       - name: Build
         run: |
-          flutter build web --dart-define="SUPABASE_URL=${{ secrets.SUPABASE_URL }}" --dart-define="SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" --web-renderer canvaskit
+          flutter build web --dart-define="apiKey=${{ secrets.APIKEY }}" --dart-define="projectId=${{ secrets.PROJECTID }}" --dart-define="messagingSenderId=${{ secrets.MESSAGINGSENDERID }}" --dart-define="appId=${{ secrets.APPID }}" --web-renderer canvaskit
           cp -avr ./build/web/* ./
 
       - name: Commit build

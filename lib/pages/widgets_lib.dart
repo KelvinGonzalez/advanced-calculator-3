@@ -785,7 +785,7 @@ Future<void> editClass(String name, BuildContext context, AppCubit cubit,
                   IconButton(
                       onPressed: () async {
                         await SharedClass.shareClass(
-                            original, state.uuid, state.supabase);
+                            original, state.uuid, state.sharedClassCollection);
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context)
                           ..hideCurrentSnackBar()

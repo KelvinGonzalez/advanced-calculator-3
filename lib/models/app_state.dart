@@ -2,10 +2,10 @@ import 'dart:math';
 
 import 'package:advanced_calculator_3/models/constants.dart';
 import 'package:advanced_calculator_3/models/custom_class.dart';
+import 'package:aggregated_collection/aggregated_collection.dart';
 import 'package:calculus/calculus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase/supabase.dart';
 import 'package:uuid/v4.dart';
 import 'dart:convert';
 
@@ -32,7 +32,7 @@ class AppState {
   final bool floatInt;
   final List<(String, String)> logs;
   final String uuid;
-  final SupabaseClient supabase;
+  final AggregatedCollection sharedClassCollection;
 
   static const toDeg = 180 / pi;
   static const toRad = pi / 180;
@@ -45,7 +45,7 @@ class AppState {
     required this.floatInt,
     required this.logs,
     required this.uuid,
-    required this.supabase,
+    required this.sharedClassCollection,
   });
 
   Map<String, dynamic> get hiddenContext => {
@@ -211,9 +211,8 @@ class AppState {
   }
 
   static AppState loadFromPreferences(SharedPreferences preferences) {
-    final supabase = SupabaseClient(
-        const String.fromEnvironment("SUPABASE_URL"),
-        const String.fromEnvironment("SUPABASE_KEY"));
+    final sharedClassCollection =
+        CollectionAggregator.instance.collection("sharedClasses");
     return AppState(
       myVariables: readVariables(preferences),
       myFunctions: readFunctions(preferences),
@@ -222,7 +221,7 @@ class AppState {
       floatInt: readFloatInt(preferences),
       logs: [],
       uuid: readUuid(preferences),
-      supabase: supabase,
+      sharedClassCollection: sharedClassCollection,
     );
   }
 }
@@ -262,7 +261,7 @@ class AppCubit extends Cubit<AppState> {
       floatInt: floatInt ?? state.floatInt,
       logs: logs ?? state.logs,
       uuid: state.uuid,
-      supabase: state.supabase,
+      sharedClassCollection: state.sharedClassCollection,
     ));
     await saveAppState();
   }
